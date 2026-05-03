@@ -1,4 +1,3 @@
-# debug_detect_fire_smoke.py  <- updated with email alert
 from ultralytics import YOLO
 import cv2
 import time
@@ -7,24 +6,24 @@ import smtplib
 from email.message import EmailMessage
 import mimetypes
 
-MODEL = "yolov8n.pt"   # keep this for now (or change to your custom .pt if you have it)
+MODEL = "yolov8n.pt"  
 VIDEO = "fire2.mp4"
 OUTPUT = "debug_output_fire_detection.mp4"
 
-# Draw every class (debug mode)
+
 CONF_THRESH = 0.25
 
-# A simple palette (will fallback to green)
+
 FALLBACK_COLOR = (0, 255, 0)
 PALETTE = {
     "fire": (0, 0, 255),
     "smoke": (255, 0, 0)
 }
 
-# Email cooldown (seconds) to avoid spamming
+
 EMAIL_COOLDOWN = 60
 
-# ---------------- Email helper ----------------
+
 def send_email_alert(subject: str, body: str, attachment_path: str = None):
     """
     Sends an email using environment variables:
@@ -45,7 +44,7 @@ def send_email_alert(subject: str, body: str, attachment_path: str = None):
     msg["Subject"] = subject
     msg.set_content(body)
 
-    # attach file if provided
+
     if attachment_path:
         if os.path.exists(attachment_path):
             ctype, encoding = mimetypes.guess_type(attachment_path)
@@ -64,7 +63,7 @@ def send_email_alert(subject: str, body: str, attachment_path: str = None):
             print("⚠️ Attachment not found:", attachment_path)
 
     try:
-        # Gmail SMTP Example (SSL)
+   
         with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
             smtp.login(user, passwd)
             smtp.send_message(msg)
@@ -76,7 +75,6 @@ def send_email_alert(subject: str, body: str, attachment_path: str = None):
         print("❌ Failed to send email:", e)
         return False
 
-# ------------------------------------------------
 
 model = YOLO(MODEL)
 cap = cv2.VideoCapture(VIDEO)
@@ -111,7 +109,7 @@ while True:
         for box, cid, conf in zip(xyxy, cls_ids, confs):
             if conf < CONF_THRESH:
                 continue
-            # force FIRE/SMOKE mapping if desired - keep original label for debug
+
             label = r.names[int(cid)].lower()
             labels_this_frame.append((label, float(conf)))
 
@@ -122,26 +120,26 @@ while True:
                         (x1, max(20, y1 - 10)),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
 
-    # Print labels once per ~0.5s to avoid huge spam
+    
     now = time.time()
     if labels_this_frame and now - last_print > 0.5:
         last_print = now
         pretty = ", ".join([f"{lab}:{conf*100:.1f}%" for lab,conf in labels_this_frame])
         print(f"frame {frame_idx}: {pretty}")
 
-    # If there is at least one detection, and cooldown passed, send an email alert
+  
     if labels_this_frame and (time.time() - last_email_sent) > EMAIL_COOLDOWN:
-        # save a snapshot annotated image for the alert
+       
         snap_path = f"alert_frame_{frame_idx}.jpg"
         cv2.imwrite(snap_path, frame)
 
-        # prepare subject/body
-        # choose top detection as representative
+       
+       
         top_label, top_conf = max(labels_this_frame, key=lambda x: x[1])
         subject = f"ALERT: {top_label.upper()} detected"
         body = f"Detected {top_label} with confidence {top_conf*100:.1f}% in video {VIDEO} at frame {frame_idx}. See attached image."
 
-        # call email function (non-blocking: run in background thread would be better, but keep simple here)
+
         sent = send_email_alert(subject, body, attachment_path=snap_path)
         if sent:
             last_email_sent = time.time()
@@ -157,7 +155,7 @@ out.release()
 cv2.destroyAllWindows()
 print("Saved ->", OUTPUT)
 
-# ================= IMAGE CHECK MODE =================
+
 def check_image(img_path):
     img = cv2.imread(img_path)
     if img is None:
@@ -174,5 +172,5 @@ def check_image(img_path):
 
     print("No detection")
 
-# <<< ADD THIS >>>
+
 check_image("fire.jpg")

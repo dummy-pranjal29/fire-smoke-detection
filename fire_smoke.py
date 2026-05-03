@@ -1,8 +1,8 @@
 from ultralytics import YOLO
 import cv2
 
-model = YOLO("yolov8n.pt")  # or your custom weights path
-images = ["fire.jpg"]       # add more filenames if needed
+model = YOLO("yolov8n.pt")  
+images = ["fire.jpg"]     
 COLORS = {"fire": (0, 0, 255), "smoke": (255, 0, 0)}
 CONF_THRESH = 0.30
 
